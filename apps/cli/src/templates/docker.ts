@@ -27,7 +27,7 @@ EXPOSE 3000
 CMD ["node", "${isTs ? 'dist/index.js' : 'src/index.js'}"]
 `;
 
-export const dockerCompose = (dbType: 'postgresql' | 'mysql' | 'none') => {
+export const dockerCompose = (dbType: 'postgresql' | 'mysql' | 'mongodb' | 'none') => {
   if (dbType === 'none') {
     return `version: '3'
 services:
@@ -37,6 +37,31 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=development
+`;
+  }
+
+  if (dbType === 'mongodb') {
+    return `version: '3'
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=mongodb://db:27017/myapp
+      - NODE_ENV=development
+    depends_on:
+      - db
+
+  db:
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - db_data:/data/db
+
+volumes:
+  db_data:
 `;
   }
 

@@ -36,3 +36,31 @@ export const dbClientJs = `import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient();
 `;
+
+export const mongooseClientTs = `import mongoose from 'mongoose';
+import { logger } from '../utils/logger.js';
+
+export const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.DATABASE_URL || '');
+    logger.info(\`MongoDB Connected: \${conn.connection.host}\`);
+  } catch (error) {
+    logger.error(\`Error: \${(error as Error).message}\`);
+    process.exit(1);
+  }
+};
+`;
+
+export const mongooseClientJs = `import mongoose from 'mongoose';
+import { logger } from '../utils/logger.js';
+
+export const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.DATABASE_URL || '');
+    logger.info(\`MongoDB Connected: \${conn.connection.host}\`);
+  } catch (error) {
+    logger.error(\`Error: \${error.message}\`);
+    process.exit(1);
+  }
+};
+`;

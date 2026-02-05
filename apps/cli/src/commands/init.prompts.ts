@@ -13,7 +13,7 @@ export const initOptionsSchema = z.object({
   language: z.enum(['ts', 'js']),
   architecture: z.enum(['feature', 'mvc']),
   apiType: z.enum(['rest', 'rest-swagger']),
-  database: z.enum(['postgresql', 'mysql', 'none']),
+  database: z.enum(['postgresql', 'mysql', 'mongodb', 'none']),
   auth: z.enum(['jwt', 'none']),
   templateEngine: z.enum(['ejs', 'pug', 'none']),
 });
@@ -74,6 +74,7 @@ export async function promptInitOptions(): Promise<InitOptions> {
         choices: [
           { title: 'PostgreSQL (Prisma)', value: 'postgresql' },
           { title: 'MySQL (Prisma)', value: 'mysql' },
+          { title: 'MongoDB (Mongoose)', value: 'mongodb' },
           { title: 'None', value: 'none' },
         ],
         initial: 0,

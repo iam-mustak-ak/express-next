@@ -53,7 +53,11 @@ export async function generateBaseApp(options: InitOptions) {
   }
 
   // Database dependencies
-  if (options.database !== 'none') {
+  if (options.database === 'mongodb') {
+    Object.assign(packageJson.dependencies, {
+      mongoose: '^8.2.0',
+    });
+  } else if (options.database !== 'none') {
     Object.assign(packageJson.dependencies, {
       '@prisma/client': '^5.10.0',
     });
@@ -165,14 +169,25 @@ export async function generateBaseApp(options: InitOptions) {
 
   // Generate Database Config if requested
   if (options.database !== 'none') {
-    const { prismaSchema, dbClientTs, dbClientJs } = await import('../templates/database.js');
-    const prismaDir = path.join(projectRoot, 'prisma');
-    fs.mkdirSync(prismaDir);
-    fs.writeFileSync(path.join(prismaDir, 'schema.prisma'), prismaSchema(options.database));
+    const { prismaSchema, dbClientTs, dbClientJs, mongooseClientTs, mongooseClientJs } =
+      await import('../templates/database.js');
 
-    const libDir = path.join(srcDir, 'lib');
-    if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
-    fs.writeFileSync(path.join(libDir, isTs ? 'db.ts' : 'db.js'), isTs ? dbClientTs : dbClientJs);
+    if (options.database === 'mongodb') {
+      const libDir = path.join(srcDir, 'lib');
+      if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
+      fs.writeFileSync(
+        path.join(libDir, isTs ? 'db.ts' : 'db.js'),
+        isTs ? mongooseClientTs : mongooseClientJs,
+      );
+    } else {
+      const prismaDir = path.join(projectRoot, 'prisma');
+      fs.mkdirSync(prismaDir);
+      fs.writeFileSync(path.join(prismaDir, 'schema.prisma'), prismaSchema(options.database));
+
+      const libDir = path.join(srcDir, 'lib');
+      if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
+      fs.writeFileSync(path.join(libDir, isTs ? 'db.ts' : 'db.js'), isTs ? dbClientTs : dbClientJs);
+    }
   }
 
   // Generate Auth if requested
@@ -212,9 +227,11 @@ export async function generateBaseApp(options: InitOptions) {
 
   // Generate .env
   const dbUrl =
-    options.database !== 'none'
-      ? `DATABASE_URL="${options.database}://user:password@localhost:5432/${options.projectName}?schema=public"`
-      : '';
+    options.database === 'mongodb'
+      ? `DATABASE_URL="mongodb://localhost:27017/${options.projectName}"`
+      : options.database !== 'none'
+        ? `DATABASE_URL="${options.database}://user:password@localhost:5432/${options.projectName}?schema=public"`
+        : '';
   const jwtSecret = options.auth === 'jwt' ? `JWT_SECRET="super-secret-key"` : '';
   const envContent = `PORT=3000
 NODE_ENV=development
@@ -234,6 +251,7 @@ import pinoHttp from 'pino-http';
 import { rateLimit } from 'express-rate-limit';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
+${options.database === 'mongodb' ? "import { connectDB } from './lib/db.js';" : ''}
 `;
 
   if (options.auth === 'jwt') {
@@ -261,6 +279,8 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(limiter);
+
+${options.database === 'mongodb' ? 'connectDB();' : ''}
 
 // View Engine Setup
 ${
