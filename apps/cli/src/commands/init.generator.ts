@@ -307,6 +307,12 @@ app.get('/protected', authenticateToken, (req, res) => {
   indexContent += `
 app.use(errorHandler);
 
+// Export app for testing
+export { app };
+`;
+
+  // Start server only if directly run
+  const serverListen = `
 const server = app.listen(port, () => {
   logger.info(\`Server running on http://localhost:\${port}\`);
 });
@@ -324,8 +330,75 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 `;
 
+  if (options.language === 'ts') {
+    indexContent += `
+if (import.meta.url === \`file://\${process.argv[1]}\`) {
+${serverListen}
+}
+`;
+  } else {
+    indexContent += `
+if (process.argv[1] === import.meta.filename) { // Node 20.11+
+${serverListen}
+} else if (import.meta.url === \`file://\${process.argv[1]}\`) {
+${serverListen}
+}
+`;
+  }
+
   const fileName = options.language === 'ts' ? 'index.ts' : 'index.js';
   fs.writeFileSync(path.join(srcDir, fileName), indexContent);
+
+  // --- Step 9: Testing & Quality ---
+
+  // Add dependencies
+  Object.assign(packageJson.devDependencies, {
+    vitest: '^1.3.1',
+    supertest: '^6.3.4',
+    husky: '^9.0.11',
+    'lint-staged': '^15.2.2',
+    prettier: '^3.2.5',
+    eslint: '^8.57.0',
+    'eslint-config-prettier': '^9.1.0',
+  });
+
+  if (isTs) {
+    Object.assign(packageJson.devDependencies, {
+      '@types/supertest': '^6.0.2',
+      '@typescript-eslint/eslint-plugin': '^7.1.0',
+      '@typescript-eslint/parser': '^7.1.0',
+    });
+  }
+
+  packageJson.scripts.test = 'vitest';
+  packageJson.scripts.lint = 'eslint . --ext .ts,.js';
+  packageJson.scripts.format = 'prettier --write .';
+  packageJson.scripts.prepare = 'husky';
+  packageJson['lint-staged'] = {
+    '**/*.{ts,js,json,md}': ['prettier --write', 'eslint --fix'],
+  };
+
+  fs.writeJsonSync(path.join(projectRoot, 'package.json'), packageJson, { spaces: 2 });
+
+  // Generate Configs
+  const { vitestConfigTs, vitestConfigJs, appTestTs, appTestJs } =
+    await import('../templates/testing.js');
+  const { eslintConfig, prettierConfig } = await import('../templates/quality.js');
+
+  fs.writeFileSync(
+    path.join(projectRoot, isTs ? 'vitest.config.ts' : 'vitest.config.js'),
+    isTs ? vitestConfigTs : vitestConfigJs,
+  );
+  fs.writeJsonSync(path.join(projectRoot, '.eslintrc.json'), eslintConfig, { spaces: 2 });
+  fs.writeJsonSync(path.join(projectRoot, '.prettierrc'), prettierConfig, { spaces: 2 });
+
+  // Generate Tests
+  const testDir = path.join(projectRoot, 'test');
+  fs.mkdirSync(testDir);
+  fs.writeFileSync(
+    path.join(testDir, isTs ? 'app.test.ts' : 'app.test.js'),
+    isTs ? appTestTs : appTestJs,
+  );
 
   // Generate tsconfig.json if TS
   if (options.language === 'ts') {
