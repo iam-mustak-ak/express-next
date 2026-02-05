@@ -40,7 +40,7 @@ export const prisma = new PrismaClient();
 export const mongooseClientTs = `import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
 
-export const connectDB = async () => {
+export const connectDB = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(process.env.DATABASE_URL || '');
     logger.info(\`MongoDB Connected: \${conn.connection.host}\`);
@@ -63,4 +63,35 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
+`;
+
+export const mongooseModelTs = `import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IUser extends Document {
+  email: string;
+  name?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema: Schema = new Schema({
+  email: { type: String, required: true, unique: true },
+  name: { type: String },
+}, {
+  timestamps: true
+});
+
+export default mongoose.model<IUser>('User', UserSchema);
+`;
+
+export const mongooseModelJs = `import mongoose from 'mongoose';
+
+const UserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  name: { type: String },
+}, {
+  timestamps: true
+});
+
+export default mongoose.model('User', UserSchema);
 `;

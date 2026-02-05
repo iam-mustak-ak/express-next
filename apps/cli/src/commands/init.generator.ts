@@ -169,8 +169,15 @@ export async function generateBaseApp(options: InitOptions) {
 
   // Generate Database Config if requested
   if (options.database !== 'none') {
-    const { prismaSchema, dbClientTs, dbClientJs, mongooseClientTs, mongooseClientJs } =
-      await import('../templates/database.js');
+    const {
+      prismaSchema,
+      dbClientTs,
+      dbClientJs,
+      mongooseClientTs,
+      mongooseClientJs,
+      mongooseModelTs,
+      mongooseModelJs,
+    } = await import('../templates/database.js');
 
     if (options.database === 'mongodb') {
       const libDir = path.join(srcDir, 'lib');
@@ -178,6 +185,14 @@ export async function generateBaseApp(options: InitOptions) {
       fs.writeFileSync(
         path.join(libDir, isTs ? 'db.ts' : 'db.js'),
         isTs ? mongooseClientTs : mongooseClientJs,
+      );
+
+      // Generate Example Model
+      const modelsDir = path.join(srcDir, 'models');
+      if (!fs.existsSync(modelsDir)) fs.mkdirSync(modelsDir);
+      fs.writeFileSync(
+        path.join(modelsDir, isTs ? 'User.ts' : 'User.js'),
+        isTs ? mongooseModelTs : mongooseModelJs,
       );
     } else {
       const prismaDir = path.join(projectRoot, 'prisma');
