@@ -15,4 +15,9 @@ cli.hook('preAction', () => {
   logger.info('Welcome to express-next CLI');
 });
 
+import { info } from './commands/info.js';
+import { upgrade } from './commands/upgrade.js';
+
 cli.addCommand(initCommand);
+cli.addCommand(info);
+cli.addCommand(upgrade);
