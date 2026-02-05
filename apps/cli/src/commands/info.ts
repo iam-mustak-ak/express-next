@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+// @ts-ignore
 import envinfo from 'envinfo';
 
 export const info = new Command()
