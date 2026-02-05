@@ -14,6 +14,7 @@ export const initOptionsSchema = z.object({
   architecture: z.enum(['feature', 'mvc']),
   apiType: z.enum(['rest', 'rest-swagger']),
   database: z.enum(['postgresql', 'mysql', 'none']),
+  auth: z.enum(['jwt', 'none']),
 });
 
 export type InitOptions = z.infer<typeof initOptionsSchema>;
@@ -72,6 +73,16 @@ export async function promptInitOptions(): Promise<InitOptions> {
         choices: [
           { title: 'PostgreSQL (Prisma)', value: 'postgresql' },
           { title: 'MySQL (Prisma)', value: 'mysql' },
+          { title: 'None', value: 'none' },
+        ],
+        initial: 0,
+      },
+      {
+        type: 'select',
+        name: 'auth',
+        message: 'Select authentication',
+        choices: [
+          { title: 'JWT (JSON Web Token)', value: 'jwt' },
           { title: 'None', value: 'none' },
         ],
         initial: 0,

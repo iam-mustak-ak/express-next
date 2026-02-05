@@ -152,10 +152,53 @@ NODE_ENV=development`;
     fs.writeFileSync(path.join(projectRoot, '.env.example'), envContent);
   }
 
+  // Generate Auth if requested
+  if (options.auth === 'jwt') {
+    const isTs = options.language === 'ts';
+
+    // Add dependencies
+    Object.assign(packageJson.dependencies, {
+      jsonwebtoken: '^9.0.2',
+    });
+    if (isTs) {
+      Object.assign(packageJson.devDependencies, {
+        '@types/jsonwebtoken': '^9.0.5',
+      });
+    }
+
+    fs.writeJsonSync(path.join(projectRoot, 'package.json'), packageJson, { spaces: 2 });
+
+    const middlewareDir = path.join(srcDir, 'middleware');
+    if (!fs.existsSync(middlewareDir)) fs.mkdirSync(middlewareDir);
+
+    // Import templates
+    const { authMiddlewareTs, authMiddlewareJs, authRouterTs, authRouterJs } =
+      await import('../templates/auth.js');
+
+    // Write Middleware
+    fs.writeFileSync(
+      path.join(middlewareDir, isTs ? 'auth.ts' : 'auth.js'),
+      isTs ? authMiddlewareTs : authMiddlewareJs,
+    );
+
+    // Write Auth Route
+    const routesDir = path.join(srcDir, 'routes');
+    if (!fs.existsSync(routesDir)) fs.mkdirSync(routesDir);
+    fs.writeFileSync(
+      path.join(routesDir, isTs ? 'auth.ts' : 'auth.js'),
+      isTs ? authRouterTs : authRouterJs,
+    );
+  }
+
   let indexContent = `import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 `;
+
+  if (options.auth === 'jwt') {
+    indexContent += `import { authRouter } from './routes/auth.js';\n`;
+    indexContent += `import { authenticateToken } from './middleware/auth.js';\n`;
+  }
 
   if (options.apiType === 'rest-swagger') {
     indexContent += `import { swaggerRouter } from './docs/index.js';\n`;
@@ -175,11 +218,23 @@ app.use(express.json());
     indexContent += `app.use('/docs', swaggerRouter);\n`;
   }
 
+  if (options.auth === 'jwt') {
+    indexContent += `app.use('/auth', authRouter);\n`;
+  }
+
   indexContent += `app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+`;
 
-app.listen(port, () => {
+  if (options.auth === 'jwt') {
+    indexContent += `
+app.get('/protected', authenticateToken, (req, res) => {
+  res.json({ message: 'This is a protected route', user: (req as any).user });
+});\n`;
+  }
+
+  indexContent += `app.listen(port, () => {
   console.log(\`Server running on http://localhost:\${port}\`);
 });
 `;
