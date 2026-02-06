@@ -26,6 +26,42 @@ importers:
 
   apps/cli:
     dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@express-next/plugin-auth':
+        specifier: workspace:*
+        version: link:../../packages/plugins/auth
+      '@express-next/plugin-ci':
+        specifier: workspace:*
+        version: link:../../packages/plugins/ci
+      '@express-next/plugin-common':
+        specifier: workspace:*
+        version: link:../../packages/plugins/common
+      '@express-next/plugin-database':
+        specifier: workspace:*
+        version: link:../../packages/plugins/database
+      '@express-next/plugin-docker':
+        specifier: workspace:*
+        version: link:../../packages/plugins/docker
+      '@express-next/plugin-middleware':
+        specifier: workspace:*
+        version: link:../../packages/plugins/middleware
+      '@express-next/plugin-quality':
+        specifier: workspace:*
+        version: link:../../packages/plugins/quality
+      '@express-next/plugin-resource':
+        specifier: workspace:*
+        version: link:../../packages/plugins/resource
+      '@express-next/plugin-swagger':
+        specifier: workspace:*
+        version: link:../../packages/plugins/swagger
+      '@express-next/plugin-testing':
+        specifier: workspace:*
+        version: link:../../packages/plugins/testing
+      '@express-next/plugin-views':
+        specifier: workspace:*
+        version: link:../../packages/plugins/views
       commander:
         specifier: ^14.0.3
         version: 14.0.3
@@ -92,6 +128,32 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/plugins/ci:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/common:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   packages/plugins/database:
     dependencies:
       '@express-next/core':
@@ -105,7 +167,85 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/plugins/docker:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/middleware:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/quality:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/resource:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
   packages/plugins/swagger:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/testing:
+    dependencies:
+      '@express-next/core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+
+  packages/plugins/views:
     dependencies:
       '@express-next/core':
         specifier: workspace:*

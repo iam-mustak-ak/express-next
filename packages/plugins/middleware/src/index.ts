@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const validationMiddlewareTs = `import { Request, Response, NextFunction } from 'express';
 import { AnyZodObject, ZodError } from 'zod';
 
@@ -42,3 +44,22 @@ export const validate = (schema) => (req, res, next) => {
   }
 };
 `;
+
+export const middlewarePlugin: Plugin = {
+  name: 'middleware',
+  apply: async (context: PluginContext) => {
+    const { isTs } = context;
+
+    return {
+      dependencies: {
+        zod: '^3.22.4',
+      },
+      files: [
+        {
+          path: isTs ? 'middleware/validate.ts' : 'middleware/validate.js',
+          content: isTs ? validationMiddlewareTs : validationMiddlewareJs,
+        },
+      ],
+    } as import('@express-next/core').PluginAction;
+  },
+};

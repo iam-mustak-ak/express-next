@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const loggerTs = `import pino from 'pino';
 
 export const logger = pino({
@@ -85,3 +87,44 @@ export const errorHandler = (err, req, res, next) => {
   });
 };
 `;
+
+export const commonPlugin: Plugin = {
+  name: 'common',
+  apply: async (context: PluginContext) => {
+    const { isTs } = context;
+
+    return {
+      dependencies: {
+        pino: '^8.19.0',
+        'pino-http': '^9.0.0',
+        helmet: '^7.1.0',
+        cors: '^2.8.5',
+        'express-rate-limit': '^7.2.0',
+        dotenv: '^16.4.5',
+      },
+      devDependencies: {
+        'pino-pretty': '^10.3.1',
+        '@types/cors': '^2.8.17',
+        '@types/express': '^4.17.21',
+        '@types/node': '^20.11.0',
+        '@types/express-rate-limit': '^6.0.0',
+        tsx: '^4.7.1',
+      },
+      files: [
+        {
+          path: isTs ? 'utils/logger.ts' : 'utils/logger.js',
+          content: isTs ? loggerTs : loggerJs,
+        },
+        {
+          path: isTs ? 'middleware/errorHandler.ts' : 'middleware/errorHandler.js',
+          content: isTs ? errorHandlerTs : errorHandlerJs,
+        },
+      ],
+      env: {
+        LOG_LEVEL: 'info',
+        PORT: '3000',
+        NODE_ENV: 'development',
+      },
+    } as import('@express-next/core').PluginAction;
+  },
+};

@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const dockerfile = (isTs: boolean, pm: 'npm' | 'pnpm' | 'yarn' | 'bun') => {
   const installCmd = pm === 'npm' ? 'npm install' : `npm install -g ${pm} && ${pm} install`;
   const buildCmd = pm === 'npm' ? 'npm run build' : `${pm} run build`;
@@ -108,4 +110,31 @@ services:
 volumes:
   db_data:
 `;
+};
+
+export const dockerPlugin: Plugin = {
+  name: 'docker',
+  apply: async (
+    context: PluginContext,
+    options: {
+      packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun';
+      database: 'postgresql' | 'mysql' | 'mongodb' | 'mongodb-prisma' | 'none';
+    },
+  ) => {
+    const { isTs } = context;
+    const { packageManager, database } = options;
+
+    return {
+      files: [
+        {
+          path: '../Dockerfile',
+          content: dockerfile(isTs, packageManager),
+        },
+        {
+          path: '../docker-compose.yml',
+          content: dockerCompose(database),
+        },
+      ],
+    } as import('@express-next/core').PluginAction;
+  },
 };

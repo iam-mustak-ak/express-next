@@ -1,6 +1,9 @@
 import { Plugin, PluginContext } from '@express-next/core';
 
-export const prismaSchema = (provider: string) => `generator client {
+export const prismaSchema = (provider: string) => {
+  const isMongo = provider === 'mongodb';
+
+  return `generator client {
   provider = "prisma-client-js"
 }
 
@@ -9,34 +12,128 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Example model
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id        ${isMongo ? 'String   @id @default(auto()) @map("_id") @db.ObjectId' : 'String   @id @default(cuid())'}
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 `;
+};
 
 export const dbClientTs = `import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const prismaClientSingleton = () => {
+  return new PrismaClient();
+};
 
-export const db = globalForPrisma.prisma || new PrismaClient();
+declare global {
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+export const prisma = globalThis.prisma ?? prismaClientSingleton();
+
+if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;
 `;
 
 export const dbClientJs = `import { PrismaClient } from '@prisma/client';
 
-export const db = global.prisma || new PrismaClient();
+export const prisma = new PrismaClient();
+`;
 
-if (process.env.NODE_ENV !== 'production') global.prisma = db;
+export const mongooseClientTs = `import mongoose from 'mongoose';
+import { logger } from '../utils/logger.js';
+
+export const connectDB = async (): Promise<void> => {
+  try {
+    const conn = await mongoose.connect(process.env.DATABASE_URL || '');
+    logger.info(\`MongoDB Connected: \${conn.connection.host}\`);
+  } catch (error) {
+    logger.error(\`Error: \${(error as Error).message}\`);
+    process.exit(1);
+  }
+};
+`;
+
+export const mongooseClientJs = `import mongoose from 'mongoose';
+import { logger } from '../utils/logger.js';
+
+export const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.DATABASE_URL || '');
+    logger.info(\`MongoDB Connected: \${conn.connection.host}\`);
+  } catch (error) {
+    logger.error(\`Error: \${error.message}\`);
+    process.exit(1);
+  }
+};
+`;
+
+export const mongooseModelTs = `import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IUser extends Document {
+  email: string;
+  name?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const UserSchema: Schema = new Schema({
+  email: { type: String, required: true, unique: true },
+  name: { type: String },
+}, {
+  timestamps: true
+});
+
+export default mongoose.model<IUser>('User', UserSchema);
+`;
+
+export const mongooseModelJs = `import mongoose from 'mongoose';
+
+const UserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  name: { type: String },
+}, {
+  timestamps: true
+});
+
+export default mongoose.model('User', UserSchema);
 `;
 
 export const databasePlugin: Plugin = {
   name: 'database',
-  apply: async (context: PluginContext, options: { provider: 'postgresql' | 'mysql' }) => {
+  apply: async (context: PluginContext, options: { database: string }) => {
     const { isTs, projectName } = context;
-    const provider = options.provider;
+    const { database } = options;
+
+    if (database === 'mongodb') {
+      return {
+        dependencies: {
+          mongoose: '^8.2.0',
+        },
+        files: [
+          {
+            path: isTs ? 'lib/db.ts' : 'lib/db.js',
+            content: isTs ? mongooseClientTs : mongooseClientJs,
+          },
+          {
+            path: isTs ? 'models/User.ts' : 'models/User.js',
+            content: isTs ? mongooseModelTs : mongooseModelJs,
+          },
+        ],
+        env: {
+          DATABASE_URL: `mongodb://localhost:27017/${projectName}`,
+        },
+      } as import('@express-next/core').PluginAction;
+    }
+
+    const provider = database === 'mongodb-prisma' ? 'mongodb' : database;
+    const dbUrl =
+      provider === 'sqlite'
+        ? `file:./dev.db`
+        : `${provider}://user:password@localhost:5432/${projectName}?schema=public`;
 
     return {
       dependencies: {
@@ -52,13 +149,6 @@ export const databasePlugin: Plugin = {
       },
       files: [
         {
-          // path relative to project root? No, plugin interface said "relative to src".
-          // wait, schema.prisma usually goes to 'prisma/schema.prisma' which is in project root.
-          // plugin interface "files" documentation says: "path: string; // relative to src".
-          // This is a limitation of my initial design if I want to write to root.
-          // Let's assume the consumer handles paths starting with `../` or absolute paths?
-          // Or better, I should update Core to allow specifying target dir or assume root relative if starting with / or something.
-          // For now, I'll use `../prisma/schema.prisma` if the base is src.
           path: '../prisma/schema.prisma',
           content: prismaSchema(provider),
         },
@@ -68,7 +158,7 @@ export const databasePlugin: Plugin = {
         },
       ],
       env: {
-        DATABASE_URL: `${provider}://user:password@localhost:5432/${projectName}?schema=public`,
+        DATABASE_URL: dbUrl,
       },
     } as import('@express-next/core').PluginAction;
   },

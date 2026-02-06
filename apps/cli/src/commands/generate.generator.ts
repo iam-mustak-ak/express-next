@@ -1,5 +1,3 @@
-import fs from 'fs-extra';
-import path from 'path';
 import {
   controllerJs,
   controllerTs,
@@ -7,7 +5,9 @@ import {
   routesTs,
   testJs,
   testTs,
-} from '../templates/resource.js';
+} from '@express-next/plugin-resource';
+import fs from 'fs-extra';
+import path from 'path';
 import { logger } from '../utils/logger.js';
 
 function capitalize(str: string) {

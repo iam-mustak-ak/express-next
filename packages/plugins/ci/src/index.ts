@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const ciWorkflow = (pm: 'npm' | 'pnpm' | 'yarn' | 'bun') => {
   const installCmd =
     pm === 'npm'
@@ -62,4 +64,23 @@ jobs:
       - name: Test
         run: ${runCmd} test
 `;
+};
+
+export const ciPlugin: Plugin = {
+  name: 'ci',
+  apply: async (
+    context: PluginContext,
+    options: { packageManager: 'npm' | 'pnpm' | 'yarn' | 'bun' },
+  ) => {
+    const { packageManager } = options;
+
+    return {
+      files: [
+        {
+          path: '../.github/workflows/ci.yml',
+          content: ciWorkflow(packageManager),
+        },
+      ],
+    } as import('@express-next/core').PluginAction;
+  },
 };

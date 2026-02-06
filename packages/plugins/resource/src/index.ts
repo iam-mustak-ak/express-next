@@ -1,3 +1,6 @@
+// This plugin currently only exports utility functions for the generate command.
+import { Plugin } from '@express-next/core';
+
 export const controllerTs = (
   name: string,
 ) => `import { Request, Response, NextFunction } from 'express';
@@ -224,3 +227,12 @@ describe('${name} API', () => {
   });
 });
 `;
+
+export const resourcePlugin: Plugin = {
+  name: 'resource',
+  apply: async () => {
+    return {
+      files: [],
+    } as import('@express-next/core').PluginAction;
+  },
+};

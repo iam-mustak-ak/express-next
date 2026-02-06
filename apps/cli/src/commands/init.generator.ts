@@ -1,6 +1,17 @@
+import { authPlugin } from '@express-next/plugin-auth';
+import { ciPlugin } from '@express-next/plugin-ci';
+import { commonPlugin } from '@express-next/plugin-common';
+import { databasePlugin } from '@express-next/plugin-database';
+import { dockerPlugin } from '@express-next/plugin-docker';
+import { middlewarePlugin } from '@express-next/plugin-middleware';
+import { qualityPlugin } from '@express-next/plugin-quality';
+import { swaggerPlugin } from '@express-next/plugin-swagger';
+import { testingPlugin } from '@express-next/plugin-testing';
+import { viewsPlugin } from '@express-next/plugin-views';
 import fs from 'fs-extra';
 import path from 'path';
 import { logger } from '../utils/logger.js';
+import { executePlugin } from '../utils/plugin.js';
 import { InitOptions } from './init.prompts.js';
 
 export async function generateBaseApp(options: InitOptions) {
@@ -13,6 +24,8 @@ export async function generateBaseApp(options: InitOptions) {
 
   logger.info(`Creating project in ${projectRoot}...`);
   fs.mkdirSync(projectRoot);
+
+  const envVars: string[] = [];
 
   // Generate package.json
   const packageJson: any = {
@@ -28,15 +41,10 @@ export async function generateBaseApp(options: InitOptions) {
     },
     dependencies: {
       express: '^4.18.2',
-      cors: '^2.8.5',
-      helmet: '^7.1.0',
-      pino: '^8.19.0',
-      'pino-http': '^9.0.0',
-      'express-rate-limit': '^7.2.0',
-      dotenv: '^16.4.5',
+      // Common dependencies are now handled by commonPlugin
     },
     devDependencies: {
-      'pino-pretty': '^10.3.1',
+      // Dev dependencies handled by plugins
     },
   };
 
@@ -52,23 +60,6 @@ export async function generateBaseApp(options: InitOptions) {
         '@types/swagger-ui-express': '^4.1.6',
       });
     }
-  }
-
-  // Database dependencies
-  if (options.database === 'mongodb') {
-    Object.assign(packageJson.dependencies, {
-      mongoose: '^8.2.0',
-    });
-  } else if (options.database !== 'none') {
-    Object.assign(packageJson.dependencies, {
-      '@prisma/client': '^6.0.0',
-    });
-    Object.assign(packageJson.devDependencies, {
-      prisma: '^6.0.0',
-    });
-    packageJson.scripts.postinstall = 'prisma generate';
-    packageJson.scripts.migration = 'prisma migrate dev';
-    packageJson.scripts.studio = 'prisma studio';
   }
 
   // Auth dependencies
@@ -96,17 +87,8 @@ export async function generateBaseApp(options: InitOptions) {
     }
   }
 
-  // TypeScript dependencies and Rate Limit types
-  if (options.language === 'ts') {
-    Object.assign(packageJson.devDependencies, {
-      typescript: '^5.4.0',
-      '@types/node': '^20.11.0',
-      '@types/express': '^4.17.21',
-      '@types/cors': '^2.8.17',
-      tsx: '^4.7.1',
-      '@types/express-rate-limit': '^6.0.0',
-    });
-  }
+  // TypeScript dependencies handled by quality/common plugins partly, but specific types might be here?
+  // Common plugin handles types/node, types/express, etc.
 
   fs.writeJsonSync(path.join(projectRoot, 'package.json'), packageJson, { spaces: 2 });
 
@@ -116,153 +98,49 @@ export async function generateBaseApp(options: InitOptions) {
 
   const isTs = options.language === 'ts';
 
-  // Generate Utilities and Middleware (Common)
-  const utilsDir = path.join(srcDir, 'utils');
-  if (!fs.existsSync(utilsDir)) fs.mkdirSync(utilsDir);
+  // plugin context
+  const context = {
+    projectRoot,
+    projectName: options.projectName,
+    isTs: options.language === 'ts',
+    language: options.language,
+  };
 
-  const middlewareDir = path.join(srcDir, 'middleware');
-  if (!fs.existsSync(middlewareDir)) fs.mkdirSync(middlewareDir);
+  // Apply Common Plugin (Logger, Error Handler, etc.)
+  await executePlugin(commonPlugin, context, projectRoot, packageJson, envVars);
 
-  const { loggerTs, loggerJs, errorHandlerTs, errorHandlerJs } =
-    await import('../templates/common.js');
-
-  fs.writeFileSync(
-    path.join(utilsDir, isTs ? 'logger.ts' : 'logger.js'),
-    isTs ? loggerTs : loggerJs,
-  );
-  fs.writeFileSync(
-    path.join(middlewareDir, isTs ? 'errorHandler.ts' : 'errorHandler.js'),
-    isTs ? errorHandlerTs : errorHandlerJs,
-  );
+  // Apply Middleware Plugin
+  await executePlugin(middlewarePlugin, context, projectRoot, packageJson, envVars);
 
   // Generate Swagger Files if requested
+  // Generate Swagger Files if requested
   if (options.apiType === 'rest-swagger') {
-    const docsDir = path.join(srcDir, 'docs');
-    fs.mkdirSync(docsDir);
-
-    const {
-      swaggerConfigTs,
-      swaggerRegistryTs,
-      swaggerIndexTs,
-      swaggerConfigJs,
-      swaggerRegistryJs,
-      swaggerIndexJs,
-    } = await import('../templates/swagger.js');
-    const { validationMiddlewareTs, validationMiddlewareJs } =
-      await import('../templates/middleware.js');
-
-    fs.writeFileSync(
-      path.join(docsDir, isTs ? 'generator.ts' : 'generator.js'),
-      isTs ? swaggerConfigTs : swaggerConfigJs,
-    );
-    fs.writeFileSync(
-      path.join(docsDir, isTs ? 'registry.ts' : 'registry.js'),
-      isTs ? swaggerRegistryTs : swaggerRegistryJs,
-    );
-    fs.writeFileSync(
-      path.join(docsDir, isTs ? 'index.ts' : 'index.js'),
-      isTs ? swaggerIndexTs : swaggerIndexJs,
-    );
-    fs.writeFileSync(
-      path.join(middlewareDir, isTs ? 'validate.ts' : 'validate.js'),
-      isTs ? validationMiddlewareTs : validationMiddlewareJs,
-    );
+    await executePlugin(swaggerPlugin, context, projectRoot, packageJson, envVars);
   }
 
   // Generate Database Config if requested
   if (options.database !== 'none') {
-    const {
-      prismaSchema,
-      dbClientTs,
-      dbClientJs,
-      mongooseClientTs,
-      mongooseClientJs,
-      mongooseModelTs,
-      mongooseModelJs,
-    } = await import('../templates/database.js');
-
-    if (options.database === 'mongodb') {
-      const libDir = path.join(srcDir, 'lib');
-      if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
-      fs.writeFileSync(
-        path.join(libDir, isTs ? 'db.ts' : 'db.js'),
-        isTs ? mongooseClientTs : mongooseClientJs,
-      );
-
-      // Generate Example Model
-      const modelsDir = path.join(srcDir, 'models');
-      if (!fs.existsSync(modelsDir)) fs.mkdirSync(modelsDir);
-      fs.writeFileSync(
-        path.join(modelsDir, isTs ? 'User.ts' : 'User.js'),
-        isTs ? mongooseModelTs : mongooseModelJs,
-      );
-    } else {
-      const prismaDir = path.join(projectRoot, 'prisma');
-      fs.mkdirSync(prismaDir);
-      const provider = options.database === 'mongodb-prisma' ? 'mongodb' : options.database;
-      fs.writeFileSync(path.join(prismaDir, 'schema.prisma'), prismaSchema(provider));
-
-      const libDir = path.join(srcDir, 'lib');
-      if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
-      fs.writeFileSync(path.join(libDir, isTs ? 'db.ts' : 'db.js'), isTs ? dbClientTs : dbClientJs);
-    }
+    await executePlugin(databasePlugin, context, projectRoot, packageJson, envVars, {
+      database: options.database,
+    });
   }
 
   // Generate Auth if requested
   if (options.auth === 'jwt') {
-    const { authMiddlewareTs, authMiddlewareJs, authRouterTs, authRouterJs } =
-      await import('../templates/auth.js');
-    fs.writeFileSync(
-      path.join(middlewareDir, isTs ? 'auth.ts' : 'auth.js'),
-      isTs ? authMiddlewareTs : authMiddlewareJs,
-    );
-
-    const routesDir = path.join(srcDir, 'routes');
-    if (!fs.existsSync(routesDir)) fs.mkdirSync(routesDir);
-    fs.writeFileSync(
-      path.join(routesDir, isTs ? 'auth.ts' : 'auth.js'),
-      isTs ? authRouterTs : authRouterJs,
-    );
+    // Use auth plugin
+    const envVars: string[] = [];
+    await executePlugin(authPlugin, context, projectRoot, packageJson, envVars);
   }
 
   // Generate Views if requested
+  // Generate Views if requested
   if (options.templateEngine !== 'none') {
-    const viewsDir = path.join(srcDir, 'views');
-    fs.mkdirSync(viewsDir);
-    const { ejsTemplates, pugTemplates, cssStyle } = await import('../templates/views.js');
-    const templates = options.templateEngine === 'ejs' ? ejsTemplates : pugTemplates;
-    const ext = options.templateEngine;
-
-    fs.writeFileSync(path.join(viewsDir, `index.${ext}`), templates.index);
-    fs.writeFileSync(path.join(viewsDir, `error.${ext}`), templates.error);
-
-    const publicDir = path.join(srcDir, 'public');
-    const cssDir = path.join(publicDir, 'css');
-    fs.mkdirSync(publicDir);
-    fs.mkdirSync(cssDir);
-    fs.writeFileSync(path.join(cssDir, 'style.css'), cssStyle);
+    await executePlugin(viewsPlugin, context, projectRoot, packageJson, envVars, {
+      templateEngine: options.templateEngine,
+    });
   }
 
-  // Generate .env
-  let connectionString = '';
-  if (options.database === 'mongodb') {
-    connectionString = `mongodb://localhost:27017/${options.projectName}`;
-  } else if (options.database === 'mongodb-prisma') {
-    connectionString = `mongodb://localhost:27017/${options.projectName}`;
-  } else if (options.database === 'postgresql') {
-    connectionString = `postgresql://user:password@localhost:5432/${options.projectName}?schema=public`;
-  } else if (options.database === 'mysql') {
-    connectionString = `mysql://user:password@localhost:3306/${options.projectName}`;
-  }
-
-  const dbUrl = connectionString ? `DATABASE_URL="${connectionString}"` : '';
-  const jwtSecret = options.auth === 'jwt' ? `JWT_SECRET="super-secret-key"` : '';
-  const envContent = `PORT=3000
-NODE_ENV=development
-${dbUrl}
-${jwtSecret}
-LOG_LEVEL=info
-`;
+  const envContent = envVars.join('\n') + '\n';
   fs.writeFileSync(path.join(projectRoot, '.env'), envContent);
   fs.writeFileSync(path.join(projectRoot, '.env.example'), envContent);
 
@@ -395,71 +273,17 @@ ${serverListen}
   fs.writeFileSync(path.join(srcDir, fileName), indexContent);
 
   // --- Step 9: Testing & Quality ---
-
-  // Add dependencies
-  Object.assign(packageJson.devDependencies, {
-    vitest: '^1.3.1',
-    supertest: '^6.3.4',
-    husky: '^9.0.11',
-    'lint-staged': '^15.2.2',
-    prettier: '^3.2.5',
-    eslint: '^8.57.0',
-    'eslint-config-prettier': '^9.1.0',
-  });
-
-  if (isTs) {
-    Object.assign(packageJson.devDependencies, {
-      '@types/supertest': '^6.0.2',
-      '@typescript-eslint/eslint-plugin': '^7.1.0',
-      '@typescript-eslint/parser': '^7.1.0',
-    });
-  }
-
-  packageJson.scripts.test = 'vitest';
-  packageJson.scripts.lint = 'eslint . --ext .ts,.js';
-  packageJson.scripts.format = 'prettier --write .';
-  packageJson.scripts.prepare = 'husky';
-  packageJson['lint-staged'] = {
-    '**/*.{ts,js,json,md}': ['prettier --write', 'eslint --fix'],
-  };
-
-  fs.writeJsonSync(path.join(projectRoot, 'package.json'), packageJson, { spaces: 2 });
-
-  // Generate Configs
-  const { vitestConfigTs, vitestConfigJs, appTestTs, appTestJs } =
-    await import('../templates/testing.js');
-  const { eslintConfig, prettierConfig } = await import('../templates/quality.js');
-
-  fs.writeFileSync(
-    path.join(projectRoot, isTs ? 'vitest.config.ts' : 'vitest.config.js'),
-    isTs ? vitestConfigTs : vitestConfigJs,
-  );
-  fs.writeJsonSync(path.join(projectRoot, '.eslintrc.json'), eslintConfig, { spaces: 2 });
-  fs.writeJsonSync(path.join(projectRoot, '.prettierrc'), prettierConfig, { spaces: 2 });
-
-  // Generate Tests
-  const testDir = path.join(projectRoot, 'test');
-  fs.mkdirSync(testDir);
-  fs.writeFileSync(
-    path.join(testDir, isTs ? 'app.test.ts' : 'app.test.js'),
-    isTs ? appTestTs : appTestJs,
-  );
+  await executePlugin(testingPlugin, context, projectRoot, packageJson, envVars);
+  await executePlugin(qualityPlugin, context, projectRoot, packageJson, envVars);
 
   // --- Step 10: Docker & CI ---
-  const { dockerfile, dockerCompose } = await import('../templates/docker.js');
-  const { ciWorkflow } = await import('../templates/ci.js');
-
-  // Write Dockerfile
-  fs.writeFileSync(path.join(projectRoot, 'Dockerfile'), dockerfile(isTs, options.packageManager));
-
-  // Write docker-compose.yml
-  fs.writeFileSync(path.join(projectRoot, 'docker-compose.yml'), dockerCompose(options.database));
-
-  // Write CI Workflow
-  const githubDir = path.join(projectRoot, '.github');
-  const workflowsDir = path.join(githubDir, 'workflows');
-  fs.mkdirSync(workflowsDir, { recursive: true });
-  fs.writeFileSync(path.join(workflowsDir, 'ci.yml'), ciWorkflow(options.packageManager));
+  await executePlugin(dockerPlugin, context, projectRoot, packageJson, envVars, {
+    packageManager: options.packageManager,
+    database: options.database,
+  });
+  await executePlugin(ciPlugin, context, projectRoot, packageJson, envVars, {
+    packageManager: options.packageManager,
+  });
 
   // Generate tsconfig.json if TS
   if (options.language === 'ts') {

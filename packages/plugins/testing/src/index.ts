@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const vitestConfigTs = `import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -28,7 +30,7 @@ export default defineConfig({
 
 export const appTestTs = `import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import { app } from '../src/app.js';
+import { app } from '../src/index.js';
 
 describe('App Integration Tests', () => {
   it('GET /health should return 200 OK', async () => {
@@ -46,7 +48,7 @@ describe('App Integration Tests', () => {
 
 export const appTestJs = `import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app } from '../src/app.js';
+import { app } from '../src/index.js';
 
 describe('App Integration Tests', () => {
   it('GET /health should return 200 OK', async () => {
@@ -61,3 +63,35 @@ describe('App Integration Tests', () => {
   });
 });
 `;
+
+export const testingPlugin: Plugin = {
+  name: 'testing',
+  apply: async (context: PluginContext) => {
+    const { isTs } = context;
+
+    return {
+      devDependencies: {
+        vitest: '^1.3.1',
+        supertest: '^6.3.4',
+        ...(isTs
+          ? {
+              '@types/supertest': '^6.0.2',
+            }
+          : {}),
+      },
+      scripts: {
+        test: 'vitest',
+      },
+      files: [
+        {
+          path: isTs ? '../vitest.config.ts' : '../vitest.config.js',
+          content: isTs ? vitestConfigTs : vitestConfigJs,
+        },
+        {
+          path: isTs ? '../test/app.test.ts' : '../test/app.test.js',
+          content: isTs ? appTestTs : appTestJs,
+        },
+      ],
+    } as import('@express-next/core').PluginAction;
+  },
+};

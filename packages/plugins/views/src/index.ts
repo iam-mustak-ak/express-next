@@ -1,3 +1,5 @@
+import { Plugin, PluginContext } from '@express-next/core';
+
 export const ejsTemplates = {
   index: `<!DOCTYPE html>
 <html lang="en">
@@ -68,3 +70,43 @@ export const cssStyle = `body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 `;
+
+export const viewsPlugin: Plugin = {
+  name: 'views',
+  apply: async (context: PluginContext, options: { templateEngine: 'ejs' | 'pug' }) => {
+    const { isTs } = context;
+    const { templateEngine } = options;
+
+    if (!templateEngine || templateEngine === ('none' as any)) {
+      return { files: [] } as any;
+    }
+
+    const templates = templateEngine === 'ejs' ? ejsTemplates : pugTemplates;
+    const ext = templateEngine;
+
+    return {
+      dependencies: {
+        [templateEngine]: templateEngine === 'ejs' ? '^3.1.9' : '^3.0.2',
+      },
+      devDependencies: isTs
+        ? {
+            [`@types/${templateEngine}`]: templateEngine === 'ejs' ? '^3.1.5' : '^2.0.10',
+          }
+        : {},
+      files: [
+        {
+          path: `views/index.${ext}`,
+          content: templates.index,
+        },
+        {
+          path: `views/error.${ext}`,
+          content: templates.error,
+        },
+        {
+          path: `public/css/style.css`,
+          content: cssStyle,
+        },
+      ],
+    } as import('@express-next/core').PluginAction;
+  },
+};
