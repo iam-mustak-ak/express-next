@@ -24,9 +24,30 @@ export default defineConfig({
   tools: {
     rspack: (config, { rspack }) => {
       config.externals = externals;
-      config.externalsType = 'commonjs';
+      config.externalsType = 'module';
+
+      config.experiments = {
+        ...config.experiments,
+        outputModule: true,
+      };
+
+      config.output = {
+        ...config.output,
+        module: true,
+        library: {
+          type: 'module',
+        },
+        chunkFormat: 'module',
+      };
 
       config.plugins?.push(
+        new rspack.BannerPlugin({
+          banner:
+            'import { createRequire } from "module"; const require = createRequire(import.meta.url);',
+          raw: true,
+          entryOnly: true,
+          include: /bin\.js$/,
+        }),
         new rspack.BannerPlugin({
           banner: '#!/usr/bin/env node',
           raw: true,

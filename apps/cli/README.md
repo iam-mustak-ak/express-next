@@ -1,4 +1,12 @@
+<div align="center">
+
 # 🚀 Express Next CLI
+
+[![npm version](https://img.shields.io/npm/v/express-next?style=flat-square)](https://www.npmjs.com/package/express-next)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+</div>
 
 A production-grade Command Line Interface for generating robust, scalable Express.js applications.
 `express-next` automates the boring setup, enforcing best practices, modern tooling, and clean architecture from day one.
@@ -165,6 +173,10 @@ my-express-app/
 └── prisma/                   # (If Prisma selected)
     └── 📄 schema.prisma
 ```
+
+## 💻 Local Development
+
+If you want to contribute to the project or run it from source, please check out our [Development Guide](./DEVELOPMENT.md).
 
 ## 🤝 Contributing
 
