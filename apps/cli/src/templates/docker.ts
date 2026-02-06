@@ -27,7 +27,9 @@ EXPOSE 3000
 CMD ["node", "${isTs ? 'dist/index.js' : 'src/index.js'}"]
 `;
 
-export const dockerCompose = (dbType: 'postgresql' | 'mysql' | 'mongodb' | 'none') => {
+export const dockerCompose = (
+  dbType: 'postgresql' | 'mysql' | 'mongodb' | 'mongodb-prisma' | 'none',
+) => {
   if (dbType === 'none') {
     return `version: '3'
 services:
@@ -40,7 +42,7 @@ services:
 `;
   }
 
-  if (dbType === 'mongodb') {
+  if (dbType === 'mongodb' || dbType === 'mongodb-prisma') {
     return `version: '3'
 services:
   app:

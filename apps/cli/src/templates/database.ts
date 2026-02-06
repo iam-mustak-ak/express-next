@@ -1,4 +1,7 @@
-export const prismaSchema = (provider: string) => `generator client {
+export const prismaSchema = (provider: string) => {
+  const isMongo = provider === 'mongodb';
+
+  return `generator client {
   provider = "prisma-client-js"
 }
 
@@ -9,13 +12,14 @@ datasource db {
 
 // Example model
 model User {
-  id        String   @id @default(cuid())
+  id        ${isMongo ? 'String   @id @default(auto()) @map("_id") @db.ObjectId' : 'String   @id @default(cuid())'}
   email     String   @unique
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 `;
+};
 
 export const dbClientTs = `import { PrismaClient } from '@prisma/client';
 

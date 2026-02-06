@@ -60,10 +60,10 @@ export async function generateBaseApp(options: InitOptions) {
     });
   } else if (options.database !== 'none') {
     Object.assign(packageJson.dependencies, {
-      '@prisma/client': '^5.10.0',
+      '@prisma/client': '^6.0.0',
     });
     Object.assign(packageJson.devDependencies, {
-      prisma: '^5.10.0',
+      prisma: '^6.0.0',
     });
     packageJson.scripts.postinstall = 'prisma generate';
     packageJson.scripts.migration = 'prisma migrate dev';
@@ -198,7 +198,8 @@ export async function generateBaseApp(options: InitOptions) {
     } else {
       const prismaDir = path.join(projectRoot, 'prisma');
       fs.mkdirSync(prismaDir);
-      fs.writeFileSync(path.join(prismaDir, 'schema.prisma'), prismaSchema(options.database));
+      const provider = options.database === 'mongodb-prisma' ? 'mongodb' : options.database;
+      fs.writeFileSync(path.join(prismaDir, 'schema.prisma'), prismaSchema(provider));
 
       const libDir = path.join(srcDir, 'lib');
       if (!fs.existsSync(libDir)) fs.mkdirSync(libDir);
@@ -242,12 +243,18 @@ export async function generateBaseApp(options: InitOptions) {
   }
 
   // Generate .env
-  const dbUrl =
-    options.database === 'mongodb'
-      ? `DATABASE_URL="mongodb://localhost:27017/${options.projectName}"`
-      : options.database !== 'none'
-        ? `DATABASE_URL="${options.database}://user:password@localhost:5432/${options.projectName}?schema=public"`
-        : '';
+  let connectionString = '';
+  if (options.database === 'mongodb') {
+    connectionString = `mongodb://localhost:27017/${options.projectName}`;
+  } else if (options.database === 'mongodb-prisma') {
+    connectionString = `mongodb://localhost:27017/${options.projectName}`;
+  } else if (options.database === 'postgresql') {
+    connectionString = `postgresql://user:password@localhost:5432/${options.projectName}?schema=public`;
+  } else if (options.database === 'mysql') {
+    connectionString = `mysql://user:password@localhost:3306/${options.projectName}`;
+  }
+
+  const dbUrl = connectionString ? `DATABASE_URL="${connectionString}"` : '';
   const jwtSecret = options.auth === 'jwt' ? `JWT_SECRET="super-secret-key"` : '';
   const envContent = `PORT=3000
 NODE_ENV=development
