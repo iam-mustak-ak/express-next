@@ -1,5 +1,5 @@
 {
-  "name": "express-next",
+  "name": "@express-next/cli",
   "version": "0.0.1",
   "description": "Production-grade CLI for Express.js applications",
   "keywords": [
