@@ -16,9 +16,11 @@ cli.hook('preAction', () => {
   logger.info('Welcome to express-next CLI');
 });
 
+import { generate } from './commands/generate.js';
 import { info } from './commands/info.js';
 import { upgrade } from './commands/upgrade.js';
 
 cli.addCommand(initCommand);
+cli.addCommand(generate);
 cli.addCommand(info);
 cli.addCommand(upgrade);
