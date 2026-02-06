@@ -3,6 +3,26 @@
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iam-mustak-ak/express-next.git"
+  },
+  "homepage": "https://github.com/iam-mustak-ak/express-next",
+  "bugs": {
+    "url": "https://github.com/iam-mustak-ak/express-next/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Mustak Ahmed Khan",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --clean && tsc -b --force --emitDeclarationOnly",
     "dev": "tsc -w",
