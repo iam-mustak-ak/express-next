@@ -2,14 +2,33 @@
   "name": "express-next",
   "version": "0.0.1",
   "description": "Production-grade CLI for Express.js applications",
+  "keywords": [
+    "express",
+    "cli",
+    "generator",
+    "scaffold",
+    "typescript",
+    "prisma",
+    "mongodb"
+  ],
+  "author": "Mustak Ahmed Khan",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iam-mustak-ak/express-next.git"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "express-next": "./dist/bin.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc -w",
+    "build": "rsbuild build",
+    "dev": "rsbuild build --watch",
     "start": "node dist/bin.js",
     "lint": "eslint . --max-warnings 0",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -23,6 +42,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@rsbuild/core": "^1.7.3",
+    "@rsbuild/plugin-type-check": "^1.3.3",
     "@types/envinfo": "^7.8.4",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.2.1",
