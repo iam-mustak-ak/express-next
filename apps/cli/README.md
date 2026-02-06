@@ -168,7 +168,7 @@ my-express-app/
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request on our [GitHub Repository](https://github.com/iam-mustak-ak/express-next).
+Contributions are welcome! Please open an issue or submit a pull request on our [GitHub Repository](https://github.com/iam-mustak-ak/express-next.git).
 
 ## 📄 License
 

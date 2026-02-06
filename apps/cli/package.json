@@ -23,11 +23,12 @@
   },
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "express-next": "./dist/bin.js"
   },
   "scripts": {
-    "build": "rsbuild build",
+    "build": "rsbuild build && tsc --emitDeclarationOnly",
     "dev": "rsbuild build --watch",
     "start": "node dist/bin.js",
     "lint": "eslint . --max-warnings 0",
