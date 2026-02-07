@@ -43,6 +43,45 @@ export const dbClientJs = `import { PrismaClient } from '@prisma/client';
 export const prisma = new PrismaClient();
 `;
 
+export const prismaConfigTs = `import { defineConfig, env } from 'prisma/config';
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: {
+    path: 'prisma/migrations',
+  },
+  datasource: {
+    url: env('DATABASE_URL'),
+  },
+});
+  },
+});
+`;
+
+export const postgresAdapterClientTs = `import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+
+const connectionString = \`\${process.env.DATABASE_URL}\`;
+
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+export const prisma = new PrismaClient({ adapter });
+`;
+
+export const postgresAdapterClientJs = `import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+
+const connectionString = \`\${process.env.DATABASE_URL}\`;
+
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+export const prisma = new PrismaClient({ adapter });
+`;
+
 export const mongooseClientTs = `import mongoose from 'mongoose';
 import { logger } from '../utils/logger';
 
@@ -125,6 +164,67 @@ export const databasePlugin: Plugin = {
         ],
         env: {
           DATABASE_URL: `mongodb://localhost:27017/${projectName}`,
+        },
+      } as import('@express-tool/core').PluginAction;
+    }
+
+    if (database === 'prisma-postgres' || database === 'postgresql') {
+      const isPrismaPostgres = database === 'prisma-postgres';
+      const scripts: any = {
+        postinstall: 'prisma generate',
+        migration: 'prisma migrate dev',
+        studio: 'prisma studio',
+      };
+
+      if (isPrismaPostgres) {
+        scripts['db:init'] = 'prisma init --db';
+      }
+
+      return {
+        dependencies: {
+          '@prisma/client': 'latest',
+          '@prisma/adapter-pg': 'latest',
+          pg: 'latest',
+          dotenv: 'latest',
+        },
+        devDependencies: {
+          prisma: 'latest',
+          '@types/pg': 'latest',
+        },
+        scripts,
+        files: [
+          {
+            path: '../prisma/schema.prisma',
+            content: `generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+`,
+          },
+          {
+            path: '../prisma.config.ts',
+            content: prismaConfigTs,
+          },
+          {
+            path: isTs ? 'lib/db.ts' : 'lib/db.js',
+            content: isTs ? postgresAdapterClientTs : postgresAdapterClientJs,
+          },
+        ],
+        env: {
+          DATABASE_URL: isPrismaPostgres
+            ? 'postgresql://user:password@localhost:5432/mydb?schema=public'
+            : 'postgresql://postgres:postgres@localhost:5432/my-app?schema=public',
         },
       } as import('@express-tool/core').PluginAction;
     }

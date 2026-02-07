@@ -329,5 +329,9 @@ dist
   console.log(`\nNext steps:`);
   console.log(`  cd ${options.projectName}`);
   console.log(`  ${options.packageManager} run dev`);
+
+  if (options.database === 'prisma-postgres') {
+    console.log(`  ${options.packageManager} run db:init (To setup Prisma Postgres Managed DB)`);
+  }
   console.log(`\nHappy Coding! 🚀\n`);
 }
