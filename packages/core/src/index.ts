@@ -19,5 +19,5 @@ export interface PluginAction {
 
 export interface Plugin {
   name: string;
-  apply: (context: PluginContext, options?: any) => Promise<PluginAction>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  apply: (context: PluginContext, options?: any) => Promise<PluginAction>;
 }
