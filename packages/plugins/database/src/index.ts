@@ -158,7 +158,7 @@ export const databasePlugin: Plugin = {
     if (database === 'mongodb') {
       return {
         dependencies: {
-          mongoose: '^8.5.1',
+          mongoose: '^9.1.6',
         },
         files: [
           {

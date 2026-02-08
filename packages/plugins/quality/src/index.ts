@@ -1,22 +1,56 @@
 import { Plugin, PluginContext } from '@express-tool/core';
 
-export const eslintConfig = {
-  env: {
-    es2021: true,
-    node: true,
+export const eslintConfigTs = `import js from '@eslint/js';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
+
+export default tseslint.config(
+  {
+    ignores: ['dist', 'node_modules'],
   },
-  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  prettier,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  }
+);
+`;
+
+export const eslintConfigJs = `import js from '@eslint/js';
+import globals from 'globals';
+import prettier from 'eslint-config-prettier';
+
+export default [
+  {
+    ignores: ['dist', 'node_modules'],
   },
-  plugins: ['@typescript-eslint'],
-  rules: {
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-  },
-};
+  js.configs.recommended,
+  prettier,
+  {
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+    },
+  }
+];
+`;
 
 export const prettierConfig = {
   semi: true,
@@ -36,37 +70,31 @@ export const qualityPlugin: Plugin = {
         husky: '^9.1.7',
         'lint-staged': '^16.2.7',
         prettier: '^3.8.1',
-        eslint: '^8.57.0',
-        'eslint-config-prettier': '^9.1.0',
+        eslint: '^10.0.0',
+        'eslint-config-prettier': '^10.1.8',
+        globals: '^15.14.0',
+        '@eslint/js': '^9.18.0',
         ...(isTs
           ? {
-              '@typescript-eslint/eslint-plugin': '^7.0.0',
-              '@typescript-eslint/parser': '^7.0.0',
+              'typescript-eslint': '^8.19.1',
             }
           : {}),
       },
       scripts: {
-        lint: 'eslint . --ext .ts,.js',
+        lint: 'eslint .',
         format: 'prettier --write .',
         prepare: 'husky',
       },
       files: [
         {
-          path: '../.eslintrc.json',
-          content: JSON.stringify(eslintConfig, null, 2),
+          path: '../eslint.config.mjs',
+          content: isTs ? eslintConfigTs : eslintConfigJs,
         },
         {
           path: '../.prettierrc',
           content: JSON.stringify(prettierConfig, null, 2),
         },
         {
-          // We need package.json update for lint-staged but the plugin interface supports merging package.json fields?
-          // No, only scripts, dependencies, devDependencies.
-          // I updated PluginAction in my head but not in @express-tool/core/src/index.ts?
-          // I should check PluginAction definition. If it doesn't support generic packageJson updates, I can't easily add lint-staged config.
-          // But I can write it to a file if supported? `.lintstagedrc`?
-          // For now, I'll stick to writing it to a file or extending the core plugin interface later.
-          // I will use .lintstagedrc.json for now to avoid package.json complexity.
           path: '../.lintstagedrc.json',
           content: JSON.stringify(
             {

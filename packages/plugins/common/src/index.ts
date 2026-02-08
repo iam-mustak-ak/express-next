@@ -95,13 +95,13 @@ export const commonPlugin: Plugin = {
 
     return {
       dependencies: {
-        pino: '^9.0.0',
-        'pino-http': '^10.0.0',
+        pino: '^10.3.0',
+        'pino-http': '^11.0.0',
         'pino-pretty': '^13.0.0',
         helmet: '^8.0.0',
         cors: '^2.8.5',
-        'express-rate-limit': '^7.2.0',
-        dotenv: '^16.4.5',
+        'express-rate-limit': '^8.2.1',
+        dotenv: '^17.2.4',
       },
       devDependencies: {
         nodemon: '^3.1.0',
@@ -109,7 +109,8 @@ export const commonPlugin: Plugin = {
           ? {
               '@types/cors': '^2.8.17',
               '@types/express': '^5.0.0',
-              '@types/node': '^20.12.0',
+              '@types/node': '^25.2.2',
+              '@types/express-serve-static-core': '^5.0.6',
             }
           : {}),
       },

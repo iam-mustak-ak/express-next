@@ -43,13 +43,14 @@ export async function generateBaseApp(options: InitOptions) {
       ...(options.language === 'ts' ? { typecheck: 'tsc --noEmit', test: 'vitest' } : {}),
     },
     dependencies: {
-      express: '^4.21.0',
+      express: '^5.2.1',
     },
     devDependencies: {
       ...(options.language === 'ts'
         ? {
-            '@types/node': '^20.12.0',
-            '@types/express': '^4.17.21',
+            '@types/node': '^25.2.2',
+            '@types/express': '^5.0.0',
+            '@types/express-serve-static-core': '^5.0.6',
             tsup: '^8.1.0',
             tsx: '^4.19.2',
             typescript: '^5.7.0',
@@ -65,7 +66,7 @@ export async function generateBaseApp(options: InitOptions) {
   if (options.apiType === 'rest-swagger') {
     Object.assign(packageJson.dependencies, {
       'swagger-ui-express': '^5.0.0',
-      zod: '^3.23.8',
+      zod: '^4.3.6',
       '@asteasolutions/zod-to-openapi': '^7.3.0',
     });
     if (options.language === 'ts') {
